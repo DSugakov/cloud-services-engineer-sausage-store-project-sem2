@@ -87,9 +87,11 @@ jobs:
       - name: Upload chart to Nexus
         run: |
           CHART_FILE=$(ls -1 sausage-store-*.tgz | head -n 1)
+          echo "Uploading chart: $CHART_FILE"
           curl -u "$NEXUS_HELM_REPO_USER:$NEXUS_HELM_REPO_PASSWORD" \
                --upload-file "$CHART_FILE" \
                "$NEXUS_HELM_REPO/"
+          echo "Chart uploaded successfully"
 
   # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
   deploy_helm_chart_to_kubernetes:
@@ -115,4 +117,5 @@ jobs:
         run: |
           helm upgrade --install sem-project nexus/sausage-store \
             --namespace $SAUSAGE_STORE_NAMESPACE \
-            --create-namespace
+            --create-namespace \
+            --version 0.1.0
