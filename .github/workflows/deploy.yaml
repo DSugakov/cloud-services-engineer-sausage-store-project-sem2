@@ -79,8 +79,6 @@ jobs:
       - name: Set chart version label
         run: |
           VERSION=$(echo "${{ github.sha }}" | cut -c1-7)
-          yq -i 
-            
           echo "Using version: $VERSION"
       - name: Package Helm chart
         run: |
