@@ -69,7 +69,7 @@ backend:
     failureThreshold: 3
   vpa:
     updatePolicy:
-      updateMode: Off
+      updateMode: "Off"
     resourcePolicy:
       containerPolicies:
         - containerName: "*"
@@ -77,11 +77,11 @@ backend:
             - cpu
             - memory
           minAllowed:
-            cpu: 50m
-            memory: 128Mi
+            cpu: "50m"
+            memory: "128Mi"
           maxAllowed:
-            cpu: 500m
-            memory: 256Mi
+            cpu: "500m"
+            memory: "256Mi"
 
 backend-report:
   replicas: 1
