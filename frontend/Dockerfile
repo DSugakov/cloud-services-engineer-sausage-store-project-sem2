@@ -4,8 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-ENV NODE_OPTIONS=--openssl-legacy-provider
-RUN npm run build -- --configuration production
+RUN NODE_OPTIONS=--openssl-legacy-provider npm run build -- --configuration production
 
 # Stage 2: serve with nginx
 FROM nginx:1.25-alpine
