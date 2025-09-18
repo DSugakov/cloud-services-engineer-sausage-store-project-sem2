@@ -1,10 +1,10 @@
 # Stage 1: build Angular app
-FROM node:16-alpine AS builder
+FROM node:14-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN NODE_OPTIONS=--openssl-legacy-provider npm run build -- --configuration production
+RUN npm run build -- --configuration production
 
 # Stage 2: serve with nginx
 FROM nginx:1.25-alpine
