@@ -1,36 +1,80 @@
-# Sausage Store
+# Sausage Store (Semester 2)
 
-![image](https://user-images.githubusercontent.com/9394918/121517767-69db8a80-c9f8-11eb-835a-e98ca07fd995.png)
+В репозитории реализовано приложение «Сосисочная» и полный путь CI/CD: Docker, Helm, деплой в Kubernetes, миграции БД и инфраструктура.
 
+## Стек
+- Frontend: Angular, TypeScript (сервится Nginx)
+- Backend: Java 16, Spring Boot, Spring Data JPA, Flyway
+- Backend-report: Go + MongoDB driver
+- Databases: PostgreSQL, MongoDB
+- Orchestration: Kubernetes + Helm (subcharts: frontend, backend, backend-report, infra)
+- CI/CD: GitHub Actions (build images, publish Helm chart to Nexus, deploy to K8s)
 
-## Technologies used
+## Структура
+- `frontend/` — Angular-приложение, Dockerfile (multi-stage)
+- `backend/` — Spring Boot, Flyway миграции в `src/main/resources/db/migration` (V001–V004)
+- `backend-report/` — сервис отчетов на Go, читает ENV `PORT`, `DB`
+- `sausage-store-chart/` — основной Helm-чарт с сабчартами: `frontend`, `backend`, `backend-report`, `infra`
+- `.github/workflows/deploy.yaml` — CI/CD пайплайн
 
-* Frontend – TypeScript, Angular.
-* Backend  – Java 16, Spring Boot, Spring Data.
-* Database – H2.
+## Docker
+- Backend: multi-stage Maven build -> JAR, образ `dsugakov/sausage-backend:latest`
+- Frontend: multi-stage Node 14 -> Nginx, образ `dsugakov/sausage-frontend:latest`
+- Backend-report: Go builder -> alpine runtime, образ `dsugakov/sausage-backend-report:latest`
 
-## Installation guide
-### Backend
+## Миграции БД (Flyway)
+Файлы: `backend/src/main/resources/db/migration/`
+- `V001__create_tables.sql` — базовые таблицы `product`, `orders`, `order_product`
+- `V002__change_schema.sql` — нормализация/enum статусов
+- `V003__insert_data.sql` — начальные данные
+- `V004__create_index.sql` — индексы для отчётности
 
-Install Java 16 and maven and run:
+## Helm
+Верхний чарт `sausage-store-chart` c сабчартами:
+- `infra/` — PostgreSQL (StatefulSet + PVC), MongoDB (StatefulSet)
+- `backend/` — Deployment c RollingUpdate, livenessProbe `/actuator/health`, VPA (Off, рекомендации)
+- `backend-report/` — Deployment c Recreate, HPA, env `PORT` (ConfigMap), `DB` (Secret)
+- `frontend/` — Service + Ingress (TLS)
 
+Центральные значения: `sausage-store-chart/values.yaml` (образы, ресурсы, ingress-хост и т.д.).
+
+## Ключевые настройки
+- Backend datasource берётся из ENV:
+  - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
+  - `SPRING_DATA_MONGODB_URI` — прокидывается из ConfigMap; пример:
+    `mongodb://reports:reportspassword@mongodb:27017/sausage-store?authSource=sausage-store&authMechanism=SCRAM-SHA-1`
+- Backend-report читает:
+  - `PORT` из ConfigMap
+  - `DB` из Secret (строка подключения к Mongo)
+- PostgreSQL — PVC для персистентности
+- Стратегии: backend — RollingUpdate, backend-report — Recreate
+- Автомасштабирование: VPA (backend, рекомендации), HPA (backend-report)
+
+## CI/CD
+Файл: `.github/workflows/deploy.yaml`
+1. Сборка и публикация образов в Docker Hub
+2. Пакетирование Helm-чарта и публикация в Nexus (helm hosted)
+3. Деплой в Kubernetes по kubeconfig
+4. Для обхода квоты Secrets используется `HELM_DRIVER=configmap` в job деплоя
+
+## Деплой/проверка
+Проверить статус:
 ```bash
-cd backend
-mvn package
-cd target
-java -jar sausage-store-0.0.1-SNAPSHOT.jar
+kubectl get pods -n r-devops-magistracy-project-2sem-659769647 -o wide
+helm list -n r-devops-magistracy-project-2sem-659769647
 ```
 
-### Frontend
-
-Install NodeJS and npm on your computer and run:
-
+Проверить backend:
 ```bash
-cd frontend
-npm install
-npm run build
-npm install -g http-server
-sudo http-server ./dist/frontend/ -p 80 --proxy http://localhost:8080
+kubectl port-forward deploy/sem-project-backend 8080:8080 -n r-devops-magistracy-project-2sem-659769647 >/dev/null 2>&1 &
+sleep 2
+curl -s http://127.0.0.1:8080/actuator/health
+curl -s http://127.0.0.1:8080/api/products | head -c 500
 ```
 
-Then open your browser and go to [http://localhost](http://localhost)
+Фронтенд доступен: `https://front-dsugakov.2sem.students-projects.ru`
+
+## Примечания
+- Vault намеренно отключён в runtime (упрощение). При желании можно включить интеграцию через Spring Cloud Vault.
+- Для Mongo создан пользователь `reports` в БД `sausage-store`; backend-report использует `authMechanism=SCRAM-SHA-1`.
+
