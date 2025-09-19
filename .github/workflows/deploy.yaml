@@ -97,6 +97,8 @@ jobs:
       name: Deploy Helm Chart To Kubernetes
       runs-on: ubuntu-latest
       needs: add_helm_chart_to_nexus
+      env:
+        HELM_DRIVER: configmap
 
       steps:
       - name: Set up Helm
