@@ -38,6 +38,7 @@ backend:
     postgresUri: jdbc:postgresql://postgres:5432/sausage-store
     postgresUser: store
     postgresPassword: storepassword
+    mongoUri: mongodb://reports:reportspassword@mongodb:27017/sausage-store?authSource=sausage-store&authMechanism=SCRAM-SHA-1
     reportPath: /logs/reports
     logPath: /logs
   service:

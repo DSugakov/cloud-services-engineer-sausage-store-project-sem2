@@ -49,6 +49,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-{{ .Chart.Name }}-secret
                   key: postgres_password
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-{{ .Chart.Name }}-conf
+                  key: mongo_uri
             # Explicitly disable Spring Cloud Vault
             - name: SPRING_CLOUD_VAULT_ENABLED
               value: "false"
