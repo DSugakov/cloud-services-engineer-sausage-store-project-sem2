@@ -101,7 +101,7 @@ backend-report:
       memory: "256Mi"
   env:
     port: "8080"
-    db: mongodb://reports:reportspassword@mongodb:27017/sausage-store
+    db: mongodb://reports:reportspassword@mongodb:27017/sausage-store?authSource=sausage-store
   hpa:
     minReplicas: 1
     maxReplicas: 3
